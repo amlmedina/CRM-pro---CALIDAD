@@ -460,7 +460,8 @@ export default function Drawer({ open, onClose, lead, leads, setLeads, tab, setT
       };
 
       mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const type = mediaRecorderRef.current.mimeType || '';
+        const audioBlob = new Blob(audioChunksRef.current, { type });
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
         reader.onloadend = () => {
