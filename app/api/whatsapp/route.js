@@ -174,17 +174,20 @@ export async function POST(req) {
             let msgOptions = {};
             let logText = '[Archivo]';
 
-            if (mimeType.startsWith('image/')) {
+            if (isVoiceNote) {
+                msgOptions = { audio: imgBuffer, mimetype: mimeType || 'audio/mp4', ptt: true };
+                logText = '[Nota de Voz]';
+            } else if (mimeType.startsWith('image/')) {
                 msgOptions = { image: imgBuffer, mimetype: mimeType, caption: caption?.trim() || '' };
                 logText = caption?.trim() ? `[Imagen] ${caption.trim()}` : '[Imagen]';
             } else if (mimeType.startsWith('video/')) {
                 msgOptions = { video: imgBuffer, mimetype: mimeType, caption: caption?.trim() || '' };
                 logText = caption?.trim() ? `[Video] ${caption.trim()}` : '[Video]';
             } else if (mimeType.startsWith('audio/')) {
-                msgOptions = { audio: imgBuffer, mimetype: mimeType, ptt: isVoiceNote || false };
-                logText = isVoiceNote ? '[Nota de Voz]' : '[Audio]';
+                msgOptions = { audio: imgBuffer, mimetype: mimeType };
+                logText = '[Audio]';
             } else {
-                msgOptions = { document: imgBuffer, mimetype: mimeType, fileName: caption || 'archivo' };
+                msgOptions = { document: imgBuffer, mimetype: mimeType || 'application/octet-stream', fileName: caption || 'archivo' };
                 logText = '[Documento]';
             }
 
