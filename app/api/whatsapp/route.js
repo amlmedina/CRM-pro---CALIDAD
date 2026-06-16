@@ -165,7 +165,8 @@ export async function POST(req) {
             // Convert base64 data URI to Buffer
             const matches = base64Data.match(/^data:(.+);base64,(.+)$/);
             if (!matches) return NextResponse.json({ error: 'Formato de archivo inválido' }, { status: 400 });
-            const mimeType = matches[1];
+            const rawMimeType = matches[1];
+            const mimeType = rawMimeType.split(';')[0]; // Strip codecs like audio/webm;codecs=opus
             const imgBuffer = Buffer.from(matches[2], 'base64');
 
             const jid = toJid(phone);
