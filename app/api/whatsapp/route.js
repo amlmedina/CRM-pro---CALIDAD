@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
+import { execSync } from 'child_process';
 
 /**
  * /api/whatsapp — Proxy interno hacia el singleton de Baileys
@@ -17,6 +19,21 @@ const UNREADS_FILE = path.join(SESSION_DIR, 'unreads.json');
 
 function getSocket() {
     return global.waSocket || null;
+}
+
+// ── Convierte cualquier audio a ogg/opus compatible con WhatsApp PTT ──────────
+function convertToOggOpus(inputBuffer) {
+    const tmpIn  = path.join(os.tmpdir(), `wa_audio_in_${Date.now()}`);
+    const tmpOut = path.join(os.tmpdir(), `wa_audio_out_${Date.now()}.ogg`);
+    try {
+        fs.writeFileSync(tmpIn, inputBuffer);
+        execSync(`ffmpeg -y -i "${tmpIn}" -c:a libopus -b:a 64k -ar 16000 -ac 1 "${tmpOut}" 2>/dev/null`);
+        const outBuffer = fs.readFileSync(tmpOut);
+        return outBuffer;
+    } finally {
+        try { fs.unlinkSync(tmpIn);  } catch {}
+        try { fs.unlinkSync(tmpOut); } catch {}
+    }
 }
 
 function getStatus() {
@@ -175,7 +192,16 @@ export async function POST(req) {
             let logText = '[Archivo]';
 
             if (isVoiceNote) {
-                msgOptions = { audio: imgBuffer, mimetype: mimeType || 'audio/mp4', ptt: true };
+                console.log('[/api/whatsapp] Convirtiendo audio a ogg/opus para PTT...');
+                let oggBuffer;
+                try {
+                    oggBuffer = convertToOggOpus(imgBuffer);
+                    console.log('[/api/whatsapp] Conversión OK, tamaño:', oggBuffer.length);
+                } catch (convErr) {
+                    console.error('[/api/whatsapp] Error al convertir audio con ffmpeg:', convErr.message);
+                    return NextResponse.json({ error: 'Error al procesar el audio. ¿Tienes ffmpeg instalado?' }, { status: 500 });
+                }
+                msgOptions = { audio: oggBuffer, mimetype: 'audio/ogg; codecs=opus', ptt: true };
                 logText = '[Nota de Voz]';
             } else if (mimeType.startsWith('image/')) {
                 msgOptions = { image: imgBuffer, mimetype: mimeType, caption: caption?.trim() || '' };
