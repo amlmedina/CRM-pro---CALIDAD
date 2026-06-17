@@ -424,12 +424,12 @@ export default function Drawer({ open, onClose, lead, leads, setLeads, tab, setT
     return text.replace(/\{(\w+)\}/g, (_, key) => (allData[key] !== undefined && allData[key] !== '') ? allData[key] : `{${key}}`);
   }
 
-  // Send image + caption via WhatsApp (Legacy)
+  // Send image + caption via WhatsApp (Legacy - base64)
   async function sendWaImage(imageBase64, captionText) {
     return sendWaMedia(imageBase64, captionText, false);
   }
 
-  // Send generic media via WhatsApp
+  // Send generic media via WhatsApp (base64)
   async function sendWaMedia(mediaBase64, captionText, isVoiceNote = false) {
     const target = lead?.LID || lead?.Telefono;
     if (!target) return;
@@ -446,6 +446,41 @@ export default function Drawer({ open, onClose, lead, leads, setLeads, tab, setT
         setWaError(data.error || 'No se pudo enviar el archivo');
       } else {
         let logText = isVoiceNote ? '[Nota de Voz]' : captionText ? `[Archivo] ${captionText}` : '[Archivo]';
+        setWaMessages(prev => [...prev, {
+          id: Date.now(), to: target,
+          message: logText,
+          createdAt: new Date().toISOString(), status: 'sent', fromMe: true
+        }]);
+      }
+    } catch {
+      setWaError('Error de conexión al enviar archivo');
+    }
+    setWaSending(false);
+  }
+
+  // Send a file by server-side URL (no base64 needed — uses /api/upload stored files)
+  async function sendWaFile(fileUrl, fileNameLabel, captionText) {
+    const target = lead?.LID || lead?.Telefono;
+    if (!target) return;
+    setWaSending(true);
+    setWaError('');
+    try {
+      const res = await fetch('/api/whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'send_media',
+          to: target,
+          fileUrl,
+          fileName: fileNameLabel,
+          caption: captionText || ''
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setWaError(data.error || 'No se pudo enviar el archivo');
+      } else {
+        const logText = captionText ? `[Archivo] ${captionText}` : `[Archivo] ${fileNameLabel}`;
         setWaMessages(prev => [...prev, {
           id: Date.now(), to: target,
           message: logText,
@@ -1242,16 +1277,29 @@ export default function Drawer({ open, onClose, lead, leads, setLeads, tab, setT
                      key={idx} 
                      onClick={async () => {
                        const resolvedText = resolveVars(text);
-                       if (isObj && p.imageBase64) {
-                         await sendWaImage(p.imageBase64, resolvedText);
-                       } else {
+                       // Send text first (if any)
+                       if (resolvedText?.trim()) {
+                         await sendWaText(resolvedText);
+                       }
+                       // Send new-style uploaded files
+                       if (isObj && p.files && p.files.length > 0) {
+                         for (const file of p.files) {
+                           await sendWaFile(file.url, file.name, '');
+                         }
+                       }
+                       // Backward-compat: old imageBase64
+                       if (isObj && p.imageBase64 && (!p.files || p.files.length === 0)) {
+                         await sendWaImage(p.imageBase64, resolvedText?.trim() ? '' : resolvedText);
+                       }
+                       // If no text and no files, still send text
+                       if (!resolvedText?.trim() && (!isObj || (!p.files?.length && !p.imageBase64))) {
                          await sendWaText(resolvedText);
                        }
                      }}
                      title={text}
                      style={{ background: 'var(--s2)', border: '1px solid var(--brd)', borderRadius: '12px', padding: '5px 12px', fontSize: '0.72rem', color: 'var(--muted)', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
                    >
-                     {title}
+                     {title}{isObj && p.files?.length > 0 ? ` 📎${p.files.length}` : (isObj && p.imageBase64 ? ' 🖼️' : '')}
                    </button>
                  );
                })}
