@@ -18,6 +18,7 @@ export default function Campaigns({ leads, cfg, user, openDrawer, initialSelecti
         cfg?.bdayDefaultMessage || '¡Hola {Nombre_Persona}! 🎉 Hoy es tu día especial. De parte de todo el equipo, te deseamos un feliz cumpleaños. ¡Que lo disfrutes mucho!'
     );
     const [bdayHour, setBdayHour] = useState(10);
+    const [bdayImage, setBdayImage] = useState(null);
 
     // Form state
     const [name, setName] = useState('');
@@ -168,6 +169,16 @@ export default function Campaigns({ leads, cfg, user, openDrawer, initialSelecti
         reader.readAsDataURL(file);
     }
 
+    function handleBdayImageChange(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setBdayImage(reader.result);
+        };
+        reader.readAsDataURL(file);
+    }
+
     async function handleSubmit() {
         if (selectedContacts.length === 0) return Swal.fire('Error', 'Selecciona al menos un contacto', 'error');
         if (!message.trim()) return Swal.fire('Error', 'Escribe un mensaje', 'error');
@@ -179,7 +190,7 @@ export default function Campaigns({ leads, cfg, user, openDrawer, initialSelecti
                 message,
                 image,
                 contacts: selectedContacts,
-                scheduledAt: scheduledAt || new Date().toISOString()
+                scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : new Date().toISOString()
             }
         };
 
@@ -239,15 +250,15 @@ export default function Campaigns({ leads, cfg, user, openDrawer, initialSelecti
 
         for (const lead of bdayLeads) {
             const day = String(lead.Cumpleanos).split('-')[1];
-            // Format: YYYY-MM-DDTHH:00
-            const scheduledDateStr = `${currentYear}-${bdayMonth}-${day}T${String(bdayHour).padStart(2, '0')}:00`;
+            // Format: YYYY-MM-DDTHH:00:00.000Z
+            const scheduledDateStr = `${currentYear}-${bdayMonth}-${day}T${String(bdayHour).padStart(2, '0')}:00:00.000Z`;
             
             const payload = {
                 action: 'create',
                 campaign: {
                     name: `🎂 Cumpleaños - ${lead.Nombre_Persona || 'Contacto'}`,
                     message: bdayMessage,
-                    image: null,
+                    image: bdayImage,
                     scheduledAt: scheduledDateStr,
                     contacts: [{
                         phone: lead.Telefono || lead.ID_Contacto,
@@ -273,6 +284,7 @@ export default function Campaigns({ leads, cfg, user, openDrawer, initialSelecti
         fetchCampaigns();
         Swal.fire('¡Listo!', `Se programaron ${success} campañas exitosamente.${errors > 0 ? ` Hubo ${errors} errores.` : ''}`, 'success');
         setView('list');
+        setBdayImage(null);
     }
 
     async function deleteCampaign(id) {
@@ -402,6 +414,17 @@ export default function Campaigns({ leads, cfg, user, openDrawer, initialSelecti
                                 <button key={v.key} className="btn btngh" style={{ fontSize: '0.7rem' }} onClick={() => setBdayMessage(bdayMessage + ` {${v.key}}`)}>+ { `{${v.key}}` }</button>
                             ))}
                         </div>
+                    </div>
+
+                    <div className="fg" style={{ marginTop: '15px' }}>
+                        <label className="lbl">Incluir Imagen (Opcional)</label>
+                        <input type="file" accept="image/*" onChange={handleBdayImageChange} />
+                        {bdayImage && (
+                            <div style={{ marginTop: '10px', position: 'relative', display: 'inline-block' }}>
+                                <img src={bdayImage} style={{ maxWidth: '200px', borderRadius: '8px', border: '1px solid var(--brd)' }} />
+                                <button className="btn btnr" style={{ display: 'block', marginTop: '5px' }} onClick={() => setBdayImage(null)}>Quitar Imagen</button>
+                            </div>
+                        )}
                     </div>
 
                     <div style={{ marginTop: '20px', padding: '15px', background: 'var(--s2)', borderRadius: '8px', border: '1px solid var(--brd)' }}>

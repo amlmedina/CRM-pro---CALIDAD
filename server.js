@@ -383,9 +383,27 @@ async function startWhatsApp() {
             
             // Personalización dinámica de variables
             let finalMsg = campaign.message;
-            Object.keys(contact).forEach(key => {
-                if (key !== 'phone' && contact[key] !== undefined && contact[key] !== null) {
-                    finalMsg = finalMsg.replace(new RegExp(`\\{${key}\\}`, 'gi'), contact[key]);
+            const vars = { ...contact };
+
+            // Normalizar aliases comunes para que funcionen intercambiablemente
+            const nameVal = contact.Nombre_Persona || contact.nombre || contact.Nombre || '';
+            vars['Nombre_Persona'] = nameVal;
+            vars['nombre'] = nameVal;
+            vars['Nombre'] = nameVal;
+
+            const companyVal = contact.Nombre_Empresa || contact.empresa || contact.Empresa || '';
+            vars['Nombre_Empresa'] = companyVal;
+            vars['empresa'] = companyVal;
+            vars['Empresa'] = companyVal;
+
+            const phoneVal = contact.Telefono || contact.phone || contact.ID_Contacto || '';
+            vars['Telefono'] = phoneVal;
+            vars['phone'] = phoneVal;
+            vars['ID_Contacto'] = phoneVal;
+
+            Object.keys(vars).forEach(key => {
+                if (key !== 'phone' && vars[key] !== undefined && vars[key] !== null) {
+                    finalMsg = finalMsg.replace(new RegExp(`\\{${key}\\}`, 'gi'), vars[key]);
                 }
             });
 
