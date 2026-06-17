@@ -1159,6 +1159,11 @@ export default function Drawer({ open, onClose, lead, leads, setLeads, tab, setT
                 const ts = msg.createdAt || msg.sentAt || msg.date || msg.timestamp;
                 const text = msg.message || msg.body || msg.text || '';
                 const isOut = msg.fromMe !== false; // treat sent msgs as outgoing
+
+                const hasMedia = !!msg.mediaUrl;
+                const isDefaultLabel = text.startsWith('[') && text.endsWith(']');
+                const displayText = (hasMedia && isDefaultLabel) ? '' : text;
+
                 return (
                   <div key={msg.id || i} style={{ display: 'flex', justifyContent: isOut ? 'flex-end' : 'flex-start' }}>
                     <div style={{
@@ -1171,7 +1176,50 @@ export default function Drawer({ open, onClose, lead, leads, setLeads, tab, setT
                       lineHeight: '1.5',
                       wordBreak: 'break-word'
                     }}>
-                      <div>{text}</div>
+                      {hasMedia && (
+                        <div style={{ marginBottom: displayText ? '8px' : '0' }}>
+                          {msg.mediaType === 'image' && (
+                            <img 
+                              src={msg.mediaUrl} 
+                              alt="Imagen de WhatsApp" 
+                              style={{ maxWidth: '100%', maxHeight: '240px', borderRadius: '6px', cursor: 'pointer', display: 'block' }}
+                              onClick={() => window.open(msg.mediaUrl, '_blank')}
+                            />
+                          )}
+                          {msg.mediaType === 'video' && (
+                            <video 
+                              src={msg.mediaUrl} 
+                              controls 
+                              style={{ maxWidth: '100%', maxHeight: '240px', borderRadius: '6px', display: 'block' }}
+                            />
+                          )}
+                          {msg.mediaType === 'audio' && (
+                            <audio 
+                              src={msg.mediaUrl} 
+                              controls 
+                              style={{ maxWidth: '100%', display: 'block' }}
+                            />
+                          )}
+                          {msg.mediaType === 'document' && (
+                            <a 
+                              href={msg.mediaUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '8px', 
+                                color: isOut ? '#38bdf8' : '#0284c7', 
+                                textDecoration: 'underline',
+                                fontWeight: 500
+                              }}
+                            >
+                              📄 {msg.fileName || 'Descargar archivo'}
+                            </a>
+                          )}
+                        </div>
+                      )}
+                      {displayText && <div>{displayText}</div>}
                       {ts && (
                         <div style={{ fontSize: '0.65rem', color: isOut ? 'rgba(233,237,239,.55)' : 'var(--muted)', textAlign: 'right', marginTop: '4px' }}>
                           {new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

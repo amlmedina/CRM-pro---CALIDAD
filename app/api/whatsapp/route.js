@@ -14,6 +14,7 @@ import { execSync } from 'child_process';
 // ── Configuración de Rutas (Sincronizado con server.js) ──────────────────────
 const BASE_STORAGE = fs.existsSync('/app/storage') ? '/app/storage' : process.cwd();
 const SESSION_DIR = path.join(BASE_STORAGE, 'wa_session');
+const MEDIA_DIR = path.join(SESSION_DIR, 'media');
 const MESSAGES_FILE = path.join(SESSION_DIR, 'messages.json');
 const UNREADS_FILE = path.join(SESSION_DIR, 'unreads.json');
 
@@ -190,6 +191,9 @@ export async function POST(req) {
             
             let msgOptions = {};
             let logText = '[Archivo]';
+            let saveBuffer = imgBuffer;
+            let ext = '.bin';
+            let type = 'document';
 
             if (isVoiceNote) {
                 console.log('[/api/whatsapp] Convirtiendo audio a ogg/opus para PTT...');
@@ -203,30 +207,65 @@ export async function POST(req) {
                 }
                 msgOptions = { audio: oggBuffer, mimetype: 'audio/ogg; codecs=opus', ptt: true };
                 logText = '[Nota de Voz]';
+                
+                type = 'audio';
+                ext = '.ogg';
+                saveBuffer = oggBuffer;
             } else if (mimeType.startsWith('image/')) {
                 msgOptions = { image: imgBuffer, mimetype: mimeType, caption: caption?.trim() || '' };
                 logText = caption?.trim() ? `[Imagen] ${caption.trim()}` : '[Imagen]';
+                
+                type = 'image';
+                ext = mimeType.includes('png') ? '.png' : '.jpg';
             } else if (mimeType.startsWith('video/')) {
                 msgOptions = { video: imgBuffer, mimetype: mimeType, caption: caption?.trim() || '' };
                 logText = caption?.trim() ? `[Video] ${caption.trim()}` : '[Video]';
+                
+                type = 'video';
+                ext = '.mp4';
             } else if (mimeType.startsWith('audio/')) {
                 msgOptions = { audio: imgBuffer, mimetype: mimeType };
                 logText = '[Audio]';
+                
+                type = 'audio';
+                ext = mimeType.includes('mpeg') || mimeType.includes('mp3') ? '.mp3' : '.ogg';
             } else {
                 msgOptions = { document: imgBuffer, mimetype: mimeType || 'application/octet-stream', fileName: caption || 'archivo' };
                 logText = '[Documento]';
+                
+                type = 'document';
+                ext = caption ? path.extname(caption) : (mimeType.includes('pdf') ? '.pdf' : '.bin');
             }
 
+            if (ext) ext = ext.replace(/[^a-zA-Z0-9\.]/g, '');
+
             await sock.sendMessage(jid, msgOptions);
+
+            const msgId = `sent_media_${Date.now()}`;
+            const fileName = `${msgId}${ext}`;
+            const filePath = path.join(MEDIA_DIR, fileName);
+
+            try {
+                if (!fs.existsSync(MEDIA_DIR)) {
+                    fs.mkdirSync(MEDIA_DIR, { recursive: true });
+                }
+                fs.writeFileSync(filePath, saveBuffer);
+                console.log(`[/api/whatsapp] Media enviada guardada localmente en: ${filePath}`);
+            } catch (saveErr) {
+                console.error('[/api/whatsapp] Error al guardar media enviada:', saveErr.message);
+            }
 
             const msgs = getMessages();
             if (!msgs[phone]) msgs[phone] = [];
             msgs[phone].push({
-                id: `sent_media_${Date.now()}`,
+                id: msgId,
                 from: phone,
                 text: logText,
                 fromMe: true,
                 timestamp: Date.now(),
+                mediaUrl: `/api/media?file=${encodeURIComponent(fileName)}`,
+                mediaType: type,
+                fileName: type === 'document' ? (caption || 'archivo') : undefined
             });
             persistMessages(msgs);
 
