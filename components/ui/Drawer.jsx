@@ -1550,7 +1550,7 @@ export default function Drawer({ open, onClose, lead, leads, setLeads, tab, setT
             <div style={{ width: '32%', minWidth: '260px', display: 'flex', flexDirection: 'column', background: 'var(--s1)' }}>
               <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--brd)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>📝 Notas y Estado</span>
-                {lead?.Telefono && !lead?.Telefono.includes('@lid') && (
+                {lead?.Telefono && !String(lead?.Telefono).includes('@lid') && (
                     <button 
                         onClick={toggleDrip} 
                         style={{ 
