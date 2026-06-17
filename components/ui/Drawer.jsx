@@ -1550,66 +1550,85 @@ export default function Drawer({ open, onClose, lead, leads, setLeads, tab, setT
             )}
             </div> {/* END LEFT COLUMN */}
 
-            {/* NOTEPAD TOGGLE BUTTON */}
-            <button
-              onClick={() => {
-                if (!showNotepad) {
-                  fetch('/api/drip').then(r => r.json()).then(data => { if (Array.isArray(data)) setDripRulesLocal(data); }).catch(() => {});
-                }
-                setShowNotepad(v => !v);
-                setShowDripConfig(false);
-              }}
-              style={{
-                position: 'absolute', right: showNotepad ? 'calc(30% + 8px)' : '8px', top: '50%',
-                transform: 'translateY(-50%)',
-                zIndex: 10,
-                width: 24, height: 56, borderRadius: '8px 0 0 8px',
-                background: 'var(--navy)', color: '#fff',
-                border: 'none', cursor: 'pointer',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                fontSize: '0.7rem', fontWeight: 800, lineHeight: 1, gap: '2px',
-                boxShadow: '-2px 0 8px rgba(0,0,0,0.15)',
-                transition: 'right 0.25s ease'
-              }}
-              title={showNotepad ? 'Cerrar panel de notas' : 'Abrir notas y Drip'}
-            >
-              {showNotepad ? '▶' : '◀'}
-            </button>
-
             {/* RIGHT COLUMN: NOTEPAD (collapsible) */}
-            {showNotepad && (
-            <div style={{ width: '30%', minWidth: '280px', display: 'flex', flexDirection: 'column', background: 'var(--s1)', borderLeft: '1px solid var(--brd)' }}>
-              <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--brd)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <button
-                    onClick={() => { setShowDripConfig(false); }}
-                    style={{ background: !showDripConfig ? 'var(--navy)' : 'transparent', color: !showDripConfig ? '#fff' : 'var(--muted)', border: '1px solid var(--brd)', borderRadius: 6, padding: '4px 10px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
-                  >📝 Notas</button>
-                  <button
-                    onClick={() => { setShowDripConfig(true); }}
-                    style={{ background: showDripConfig ? 'var(--navy)' : 'transparent', color: showDripConfig ? '#fff' : 'var(--muted)', border: '1px solid var(--brd)', borderRadius: 6, padding: '4px 10px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
-                  >🤖 Drip</button>
-                </div>
-                {!showDripConfig && lead?.Telefono && !String(lead?.Telefono).includes('@lid') && (
-                  <button
-                    onClick={toggleDrip}
-                    style={{
-                      background: dripEnabled ? '#25d366' : 'var(--s2)',
-                      color: dripEnabled ? '#fff' : 'var(--muted)',
-                      border: `1px solid ${dripEnabled ? '#25d366' : 'var(--brd)'}`,
-                      borderRadius: '20px', padding: '3px 8px',
-                      fontSize: '0.68rem', cursor: 'pointer', fontWeight: 700,
-                      transition: 'all 0.2s'
-                    }}
-                    title={dripEnabled ? 'Apagar Drip para este contacto' : 'Encender Drip para este contacto'}
-                  >
-                    {dripEnabled ? '✅ Drip ON' : '⭕ Drip OFF'}
-                  </button>
+            <div style={{ 
+              width: showNotepad ? '30%' : '36px', 
+              minWidth: showNotepad ? '280px' : '36px', 
+              display: 'flex', flexDirection: 'column', 
+              background: 'var(--s1)', 
+              borderLeft: '1px solid var(--brd)',
+              transition: 'width 0.2s ease, min-width 0.2s ease',
+              overflow: 'hidden',
+              flexShrink: 0
+            }}>
+              {/* Toggle strip / header */}
+              <div 
+                onClick={() => {
+                  if (!showNotepad) {
+                    fetch('/api/drip').then(r => r.json()).then(data => { if (Array.isArray(data)) setDripRulesLocal(data); }).catch(() => {});
+                  }
+                  setShowNotepad(v => !v);
+                  setShowDripConfig(false);
+                }}
+                style={{ 
+                  padding: showNotepad ? '10px 14px' : '0',
+                  borderBottom: showNotepad ? '1px solid var(--brd)' : 'none', 
+                  display: 'flex', 
+                  justifyContent: showNotepad ? 'space-between' : 'center',
+                  alignItems: 'center', 
+                  flexWrap: 'wrap', gap: 6,
+                  cursor: !showNotepad ? 'pointer' : 'default',
+                  minHeight: showNotepad ? 'auto' : '100%',
+                  writingMode: showNotepad ? 'horizontal-tb' : 'vertical-rl',
+                }}>
+                {!showNotepad ? (
+                  <span style={{ 
+                    fontSize: '0.72rem', fontWeight: 700, color: 'var(--navy)', 
+                    letterSpacing: '0.5px', whiteSpace: 'nowrap',
+                    transform: 'rotate(180deg)',
+                    userSelect: 'none'
+                  }}>📝 Notas &amp; Drip</span>
+                ) : (
+                  <>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowDripConfig(false); }}
+                      style={{ background: !showDripConfig ? 'var(--navy)' : 'transparent', color: !showDripConfig ? '#fff' : 'var(--muted)', border: '1px solid var(--brd)', borderRadius: 6, padding: '4px 10px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
+                    >📝 Notas</button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowDripConfig(true); }}
+                      style={{ background: showDripConfig ? 'var(--navy)' : 'transparent', color: showDripConfig ? '#fff' : 'var(--muted)', border: '1px solid var(--brd)', borderRadius: 6, padding: '4px 10px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
+                    >🤖 Drip</button>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    {!showDripConfig && lead?.Telefono && !String(lead?.Telefono).includes('@lid') && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleDrip(); }}
+                        style={{
+                          background: dripEnabled ? '#25d366' : 'var(--s2)',
+                          color: dripEnabled ? '#fff' : 'var(--muted)',
+                          border: `1px solid ${dripEnabled ? '#25d366' : 'var(--brd)'}`,
+                          borderRadius: '20px', padding: '3px 8px',
+                          fontSize: '0.68rem', cursor: 'pointer', fontWeight: 700,
+                          transition: 'all 0.2s'
+                        }}
+                        title={dripEnabled ? 'Apagar Drip para este contacto' : 'Encender Drip para este contacto'}
+                      >
+                        {dripEnabled ? '✅ Drip ON' : '⭕ Drip OFF'}
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowNotepad(false); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: 'var(--muted)', padding: '2px 4px' }}
+                      title="Cerrar panel"
+                    >✕</button>
+                  </div>
+                  </>
                 )}
               </div>
 
               {/* NOTAS VIEW */}
-              {!showDripConfig ? (
+              {showNotepad && !showDripConfig && (
                 <div style={{ flex: 1, padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <textarea
                     value={notas}
@@ -1621,17 +1640,19 @@ export default function Drawer({ open, onClose, lead, leads, setLeads, tab, setT
                     {loading ? '⏳ Guardando...' : '💾 Guardar Notas'}
                   </button>
                 </div>
-              ) : (
-                /* DRIP CONFIG VIEW */
+              )}
+
+              {/* DRIP CONFIG VIEW */}
+              {showNotepad && showDripConfig && (
                 <div style={{ flex: 1, overflowY: 'auto', padding: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <p style={{ fontSize: '0.75rem', color: 'var(--muted)', margin: 0, lineHeight: 1.4 }}>
-                    Define cuántos días esperar sin respuesta antes de enviar un mensaje automático.
+                    Reglas globales de auto-seguimiento. Puedes modificarlas para este contacto.
                   </p>
                   {dripRulesLocal.sort((a, b) => a.days - b.days).map((rule, idx) => (
                     <div key={rule.id} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: 8, padding: '10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted)' }}>Paso {idx + 1}</span>
-                        <button onClick={() => setDripRulesLocal(dripRulesLocal.filter(r => r.id !== rule.id))} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: '0.75rem', padding: 2 }}>✕ Eliminar</button>
+                        <button onClick={() => setDripRulesLocal(dripRulesLocal.filter(r => r.id !== rule.id))} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: '0.75rem', padding: 2 }}>✕</button>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ fontSize: '0.78rem', flexShrink: 0 }}>Esperar</span>
@@ -1675,8 +1696,7 @@ export default function Drawer({ open, onClose, lead, leads, setLeads, tab, setT
                   </button>
                 </div>
               )}
-            </div>)
-            } {/* END RIGHT COLUMN */}
+            </div> {/* END RIGHT COLUMN */}
 
           </div>
 
